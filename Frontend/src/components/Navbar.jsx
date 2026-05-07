@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
-import { Menu, X, User, Globe, Sun, Moon, Ticket, LogOut } from 'lucide-react'
+import { Menu, X, User, Globe, Sun, Moon, Ticket, LogOut, LayoutDashboard } from 'lucide-react'
 import LanguageSwitcher from './LanguageSwitcher'
 import ThemeToggle from './ThemeToggle'
 import { useAuth } from '../contexts/AuthContext'
@@ -73,21 +73,33 @@ const Navbar = () => {
               </div>
               {user ? (
                 <div className="flex items-center space-x-4 pl-4 border-l border-gray-200 dark:border-neutral-700 ml-2">
-                  <Link
-                    to="/my-event-tickets"
-                    className="flex items-center text-neutral-700 dark:text-neutral-300 hover:text-emerald-600 dark:hover:text-emerald-400 text-sm px-3 py-2 rounded-lg bg-gray-50 dark:bg-neutral-800 transition-colors duration-200"
-                    title={isAmharic ? 'የእኔ የኢቨንት ቲኬቶች' : 'My Event Tickets'}
-                  >
-                    <Ticket size={18} className="mr-2" />
-                    <span className="font-medium hidden lg:inline">{isAmharic ? 'ቲኬቶች' : 'Tickets'}</span>
-                  </Link>
-                  <Link
-                    to="/profile"
-                    className="flex items-center text-neutral-700 dark:text-neutral-300 hover:text-emerald-600 dark:hover:text-emerald-400 text-sm px-3 py-2 rounded-lg bg-gray-50 dark:bg-neutral-800 transition-colors duration-200"
-                  >
-                    <User size={18} className="mr-2" />
-                    <span className="font-medium hidden lg:inline">{user.firstName}</span>
-                  </Link>
+                  {user.role === 'admin' ? (
+                    <Link
+                      to="/admin"
+                      className="flex items-center gap-2 text-white bg-purple-600 hover:bg-purple-700 dark:bg-purple-700 dark:hover:bg-purple-600 text-sm px-4 py-2 rounded-lg font-semibold transition-colors duration-200 shadow-sm"
+                    >
+                      <LayoutDashboard size={16} />
+                      {isAmharic ? 'ዳሽቦርድ' : 'Dashboard'}
+                    </Link>
+                  ) : (
+                    <>
+                      <Link
+                        to="/my-event-tickets"
+                        className="flex items-center text-neutral-700 dark:text-neutral-300 hover:text-emerald-600 dark:hover:text-emerald-400 text-sm px-3 py-2 rounded-lg bg-gray-50 dark:bg-neutral-800 transition-colors duration-200"
+                        title={isAmharic ? 'የእኔ የኢቨንት ቲኬቶች' : 'My Event Tickets'}
+                      >
+                        <Ticket size={18} className="mr-2" />
+                        <span className="font-medium hidden lg:inline">{isAmharic ? 'ቲኬቶች' : 'Tickets'}</span>
+                      </Link>
+                      <Link
+                        to="/profile"
+                        className="flex items-center text-neutral-700 dark:text-neutral-300 hover:text-emerald-600 dark:hover:text-emerald-400 text-sm px-3 py-2 rounded-lg bg-gray-50 dark:bg-neutral-800 transition-colors duration-200"
+                      >
+                        <User size={18} className="mr-2" />
+                        <span className="font-medium hidden lg:inline">{user.firstName}</span>
+                      </Link>
+                    </>
+                  )}
                   <button
                     onClick={handleLogout}
                     className="flex items-center text-neutral-700 dark:text-neutral-300 hover:text-red-600 dark:hover:text-red-500 p-2 rounded-lg bg-gray-50 dark:bg-neutral-800 transition-colors duration-200"
@@ -156,19 +168,41 @@ const Navbar = () => {
                 </div>
                 
                 {user ? (
-                  <div className="flex items-center justify-between pt-2">
-                    <Link
-                      to="/profile"
-                      className="flex items-center text-neutral-700 dark:text-neutral-300 hover:text-emerald-600 dark:hover:text-emerald-400 px-4 py-3 rounded-lg bg-gray-50 dark:bg-neutral-800 flex-grow mr-2"
-                      onClick={() => setIsOpen(false)}
-                    >
-                      <User size={18} className="mr-3" />
-                      <span className="font-medium">{user.firstName}</span>
-                    </Link>
+                  <div className="flex flex-col space-y-2">
+                    {user.role === 'admin' ? (
+                      <Link
+                        to="/admin"
+                        className="flex items-center justify-center gap-2 text-white bg-purple-600 hover:bg-purple-700 px-4 py-3 rounded-lg font-semibold transition-colors"
+                        onClick={() => setIsOpen(false)}
+                      >
+                        <LayoutDashboard size={18} />
+                        {isAmharic ? 'ዳሽቦርድ' : 'Dashboard'}
+                      </Link>
+                    ) : (
+                      <>
+                        <Link
+                          to="/profile"
+                          className="flex items-center text-neutral-700 dark:text-neutral-300 hover:text-emerald-600 dark:hover:text-emerald-400 px-4 py-3 rounded-lg bg-gray-50 dark:bg-neutral-800"
+                          onClick={() => setIsOpen(false)}
+                        >
+                          <User size={18} className="mr-3" />
+                          <span className="font-medium">{user.firstName}</span>
+                        </Link>
+                        <Link
+                          to="/my-event-tickets"
+                          className="flex items-center text-neutral-700 dark:text-neutral-300 hover:text-emerald-600 dark:hover:text-emerald-400 px-4 py-3 rounded-lg bg-gray-50 dark:bg-neutral-800"
+                          onClick={() => setIsOpen(false)}
+                        >
+                          <Ticket size={18} className="mr-3" />
+                          <span className="font-medium">{isAmharic ? 'የእኔ የኢቨንት ቲኬቶች' : 'My Event Tickets'}</span>
+                        </Link>
+                      </>
+                    )}
                     <button
                       onClick={handleLogout}
-                      className="text-neutral-700 dark:text-neutral-300 hover:text-red-600 dark:hover:text-red-400 px-4 py-3 rounded-lg bg-gray-50 dark:bg-neutral-800"
+                      className="flex items-center justify-center gap-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 px-4 py-3 rounded-lg bg-gray-50 dark:bg-neutral-800 font-medium transition-colors"
                     >
+                      <LogOut size={18} />
                       {t('navbar.logout', { defaultValue: isAmharic ? 'ውጣት' : 'Logout' })}
                     </button>
                   </div>
@@ -190,17 +224,7 @@ const Navbar = () => {
                     </Link>
                   </div>
                 )}
-                {/* My Event Tickets link for logged-in users */}
-                {user && (
-                  <Link
-                    to="/my-event-tickets"
-                    className="flex items-center text-neutral-700 dark:text-neutral-300 hover:text-emerald-600 dark:hover:text-emerald-400 px-4 py-3 rounded-lg bg-gray-50 dark:bg-neutral-800"
-                    onClick={() => setIsOpen(false)}
-                  >
-                    <Ticket size={18} className="mr-3" />
-                    <span className="font-medium">{isAmharic ? 'የእኔ የኢቨንት ቲኬቶች' : 'My Event Tickets'}</span>
-                  </Link>
-                )}
+                {/* My Event Tickets link handled inside user block above */}
               </div>
             </div>
           </div>
