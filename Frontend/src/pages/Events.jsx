@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Calendar, MapPin, Ticket } from 'lucide-react'
 import { getEvents } from '../api/events.js'
 import { useAuth } from '../contexts/AuthContext'
+import { getAssetUrl } from '../utils/api.js'
 
 const Events = () => {
   const { t, i18n } = useTranslation()
@@ -21,7 +22,7 @@ const Events = () => {
       setLoading(true)
       setError('')
       try {
-        const data = await getEvents({ limit: 100, status: 'published' })
+        const data = await getEvents({ limit: 100, status: 'active' })
         if (!active) return
         setEvents(Array.isArray(data?.events) ? data.events : [])
       } catch (e) {
@@ -77,7 +78,7 @@ const Events = () => {
               <div key={ev.id} className="bg-white dark:bg-neutral-800 rounded-2xl border border-neutral-200 dark:border-neutral-700 shadow-sm overflow-hidden">
                 <div className="h-44 bg-neutral-200 dark:bg-neutral-700">
                   {ev.imageUrl ? (
-                    <img src={ev.imageUrl} alt={ev.title} className="w-full h-full object-cover" />
+                    <img src={getAssetUrl(ev.imageUrl)} alt={ev.title} className="w-full h-full object-cover" />
                   ) : null}
                 </div>
                 <div className="p-5">

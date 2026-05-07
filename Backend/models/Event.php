@@ -55,6 +55,7 @@ class Event {
             $where[] = 'status = ?';
             $params[] = $filters['status'];
         }
+        // If no status filter, show all (admin use case)
         if (!empty($filters['eventType'])) {
             $where[] = 'eventType = ?';
             $params[] = $filters['eventType'];

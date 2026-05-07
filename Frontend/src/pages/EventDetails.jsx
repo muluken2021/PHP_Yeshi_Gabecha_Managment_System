@@ -4,6 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { Calendar, MapPin, Ticket } from 'lucide-react'
 import { getEventById } from '../api/events.js'
 import { useAuth } from '../contexts/AuthContext'
+import { getAssetUrl } from '../utils/api.js'
 
 const EventDetails = () => {
   const { id } = useParams()
@@ -67,7 +68,7 @@ const EventDetails = () => {
         <div className="bg-white dark:bg-neutral-800 rounded-2xl border border-neutral-200 dark:border-neutral-700 overflow-hidden shadow-sm">
           {event.imageUrl ? (
             <div className="h-64 bg-neutral-200 dark:bg-neutral-700">
-              <img src={event.imageUrl} alt={event.title} className="w-full h-full object-cover" />
+              <img src={getAssetUrl(event.imageUrl)} alt={event.title} className="w-full h-full object-cover" />
             </div>
           ) : null}
 

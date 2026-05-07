@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { createEvent, deleteEvent, getEvents, updateEvent } from '../../api/events.js'
+import { getAssetUrl } from '../../utils/api.js'
 import { MapContainer, Marker, TileLayer, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import iconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png'
@@ -106,7 +107,7 @@ const Events = () => {
       eventTime: '',
       ticketPrice: '',
       totalTickets: '',
-      status: 'draft',
+      status: 'active',
       imageFile: null,
     })
     setPlaceQuery('')
@@ -218,7 +219,7 @@ const Events = () => {
           {events.map((ev) => (
             <div key={ev.id} className="flex flex-col bg-white rounded-lg shadow-md dark:bg-gray-800 overflow-hidden">
               <div className="h-44 bg-gray-200 dark:bg-gray-700">
-                {ev.imageUrl ? <img src={ev.imageUrl} alt={ev.title} className="w-full h-full object-cover" /> : null}
+                {ev.imageUrl ? <img src={getAssetUrl(ev.imageUrl)} alt={ev.title} className="w-full h-full object-cover" /> : null}
               </div>
               <div className="p-4 flex-grow">
                 <div className="text-xs font-semibold text-green-700 dark:text-green-300 uppercase">{ev.eventType}</div>
@@ -309,7 +310,7 @@ const Events = () => {
                     onChange={(e) => setForm((p) => ({ ...p, status: e.target.value }))}
                     className="w-full px-4 py-2 text-sm text-gray-700 bg-white border border-gray-200 rounded-md dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700 focus:border-purple-400 focus:ring-purple-300 focus:ring-opacity-40 focus:outline-none focus:ring"
                   >
-                    {['draft', 'published'].map((x) => (
+                    {['active', 'inactive', 'cancelled'].map((x) => (
                       <option key={x} value={x}>
                         {x}
                       </option>

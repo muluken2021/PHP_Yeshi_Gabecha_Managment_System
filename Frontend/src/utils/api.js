@@ -26,6 +26,15 @@ const getBaseUrl = () => {
   return base && typeof base === 'string' ? base.replace(/\/$/, '') : '/api'
 }
 
+// Converts a relative upload path like /uploads/events/file.png
+// to a full URL using the backend base URL
+export const getAssetUrl = (path) => {
+  if (!path) return null
+  if (path.startsWith('http://') || path.startsWith('https://')) return path
+  const base = getBaseUrl()
+  return `${base}${path.startsWith('/') ? path : `/${path}`}`
+}
+
 const request = async (method, path, body, options = {}) => {
   const baseUrl = getBaseUrl()
   const url = `${baseUrl}${path.startsWith('/') ? path : `/${path}`}`

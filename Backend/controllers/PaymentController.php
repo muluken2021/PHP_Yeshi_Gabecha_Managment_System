@@ -11,6 +11,59 @@ require_once __DIR__ . '/../middleware/AuthMiddleware.php';
 
 class PaymentController {
 
+    // GET /payments/my-event-tickets
+    public static function myEventTickets(): void {
+        global $conn;
+        $auth   = authenticate();
+        $limit  = (int)($_GET['limit']  ?? 50);
+        $offset = (int)($_GET['offset'] ?? 0);
+
+        // Fetch payments that are linked to events for this user, joined with event data
+        $stmt = $conn->prepare(
+            "SELECT p.*, e.title as eventTitle, e.eventType, e.eventDate, e.eventTime,
+                    e.location as eventLocation, e.imageUrl as eventImageUrl
+             FROM payments p
+             LEFT JOIN events e ON p.eventId = e.id
+             WHERE p.userId = ? AND p.eventId IS NOT NULL
+             ORDER BY p.createdAt DESC
+             LIMIT ? OFFSET ?"
+        );
+        $stmt->execute([$auth['id'], $limit, $offset]);
+        $rows = $stmt->fetchAll();
+
+        // Shape the data so the frontend gets event as a nested object
+        $payments = array_map(function($row) {
+            $event = null;
+            if (!empty($row['eventId'])) {
+                $event = [
+                    'id'        => $row['eventId'],
+                    'title'     => $row['eventTitle'],
+                    'eventType' => $row['eventType'],
+                    'eventDate' => $row['eventDate'],
+                    'eventTime' => $row['eventTime'],
+                    'location'  => $row['eventLocation'],
+                    'imageUrl'  => $row['eventImageUrl'],
+                ];
+            }
+            unset($row['eventTitle'], $row['eventType'], $row['eventDate'],
+                  $row['eventTime'], $row['eventLocation'], $row['eventImageUrl']);
+            $row['event'] = $event;
+            return $row;
+        }, $rows);
+
+        // Count total
+        $countStmt = $conn->prepare(
+            "SELECT COUNT(*) FROM payments WHERE userId = ? AND eventId IS NOT NULL"
+        );
+        $countStmt->execute([$auth['id']]);
+        $total = (int)$countStmt->fetchColumn();
+
+        sendResponse(200, true, 'Event tickets retrieved', [
+            'payments' => $payments,
+            'total'    => $total,
+        ]);
+    }
+
     // GET /payments/my-payments
     public static function myPayments(): void {
         global $conn;

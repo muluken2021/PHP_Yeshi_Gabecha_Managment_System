@@ -2,6 +2,9 @@
 -- Habesha Event Management System — Database Schema
 -- ============================================================
 
+CREATE DATABASE IF NOT EXISTS yeshih_gabcha CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE yeshih_gabcha;
+
 -- Drop tables if they exist to allow recreation
 DROP TABLE IF EXISTS audit_logs;
 DROP TABLE IF EXISTS notifications;
@@ -30,6 +33,8 @@ CREATE TABLE users (
     twoFactorEnabled    TINYINT(1) NOT NULL DEFAULT 0,
     twoFactorSecret     VARCHAR(255),
     twoFactorTempToken  VARCHAR(255),
+    passwordResetOtp        VARCHAR(6),
+    passwordResetOtpExpiry  DATETIME,
     createdAt    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updatedAt    TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
@@ -73,7 +78,7 @@ CREATE TABLE events (
     totalTickets INT,
     soldTickets  INT  NOT NULL DEFAULT 0,
     imageUrl     VARCHAR(255),
-    status       ENUM('active','inactive','cancelled') NOT NULL DEFAULT 'active',
+    status       ENUM('active','inactive','cancelled','draft','published') NOT NULL DEFAULT 'active',
     createdAt    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updatedAt    TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );

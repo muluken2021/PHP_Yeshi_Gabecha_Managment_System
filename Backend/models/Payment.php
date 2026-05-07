@@ -96,7 +96,8 @@ class Payment {
     public function countAll(array $filters = []): int {
         $where  = ['1=1'];
         $params = [];
-        if (!empty($filters['status']))    { $where[] = 'status = ?';        $params[] = $filters['status']; }
+        if (!empty($filters['status']))    { $where[] = 'status = ?';          $params[] = $filters['status']; }
+        if (!empty($filters['userId']))    { $where[] = 'userId = ?';          $params[] = $filters['userId']; }
         if (!empty($filters['eventOnly'])) { $where[] = 'eventId IS NOT NULL'; }
 
         $stmt = $this->conn->prepare(

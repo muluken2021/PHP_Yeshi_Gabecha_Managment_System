@@ -172,6 +172,65 @@ class AuthController {
         sendResponse(200, true, 'Verification email sent');
     }
 
+    // POST /auth/forgot-password
+    public static function forgotPassword(): void {
+        global $conn;
+        $d = self::json();
+
+        if (empty($d['email'])) {
+            sendResponse(400, false, 'Email is required');
+        }
+
+        $model = new User($conn);
+        $user  = $model->findByEmail($d['email']);
+
+        // Always return success to prevent email enumeration
+        if ($user) {
+            $otp = str_pad((string)random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+            $model->update($user['id'], [
+                'passwordResetOtp'       => $otp,
+                'passwordResetOtpExpiry' => date('Y-m-d H:i:s', time() + 900), // 15 min
+            ]);
+            // TODO: send OTP via email
+        }
+
+        sendResponse(200, true, 'If the email exists, an OTP has been sent');
+    }
+
+    // POST /auth/reset-password
+    public static function resetPassword(): void {
+        global $conn;
+        $d = self::json();
+
+        if (empty($d['email']) || empty($d['otp']) || empty($d['newPassword'])) {
+            sendResponse(400, false, 'email, otp, and newPassword are required');
+        }
+
+        $model = new User($conn);
+        $user  = $model->findByEmail($d['email']);
+
+        if (!$user) {
+            sendResponse(400, false, 'Invalid or expired OTP');
+        }
+
+        if (
+            empty($user['passwordResetOtp']) ||
+            $user['passwordResetOtp'] !== $d['otp'] ||
+            empty($user['passwordResetOtpExpiry']) ||
+            strtotime($user['passwordResetOtpExpiry']) < time()
+        ) {
+            sendResponse(400, false, 'Invalid or expired OTP');
+        }
+
+        $model->updatePassword($user['id'], $d['newPassword']);
+        $model->update($user['id'], [
+            'passwordResetOtp'       => null,
+            'passwordResetOtpExpiry' => null,
+        ]);
+
+        sendResponse(200, true, 'Password reset successfully');
+    }
+
     // GET /auth/verify-email?token=xxx
     public static function verifyEmail(): void {
         global $conn;

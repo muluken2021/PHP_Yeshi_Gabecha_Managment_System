@@ -17,8 +17,13 @@ class EventController {
         $model   = new Event($conn);
         $limit   = (int)($_GET['limit']  ?? 20);
         $offset  = (int)($_GET['offset'] ?? 0);
+
+        // Normalize status: 'published' maps to 'active' for public queries
+        $rawStatus = $_GET['status'] ?? '';
+        if ($rawStatus === 'published') $rawStatus = 'active';
+
         $filters = array_filter([
-            'status'    => $_GET['status']    ?? 'active',
+            'status'    => $rawStatus,
             'eventType' => $_GET['eventType'] ?? '',
             'search'    => $_GET['search']    ?? '',
         ]);
@@ -167,7 +172,6 @@ class EventController {
                 'type'     => 'payment_created',
                 'title'    => 'New Event Ticket Payment',
                 'message'  => "Ticket payment for '{$event['title']}' via {$d['paymentMethod']}",
-                'metadata' => json_encode(['paymentId' => $payment['id']]),
             ]);
         } catch (Throwable $e) {}
 

@@ -35,6 +35,14 @@ switch (true) {
         AuthController::resendVerification();
         break;
 
+    case $method === 'POST' && $endpoint === 'forgot-password':
+        AuthController::forgotPassword();
+        break;
+
+    case $method === 'POST' && $endpoint === 'reset-password':
+        AuthController::resetPassword();
+        break;
+
     case $method === 'GET' && $endpoint === 'verify-email':
         AuthController::verifyEmail();
         break;

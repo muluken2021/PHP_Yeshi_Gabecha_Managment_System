@@ -20,6 +20,11 @@ switch (true) {
         PaymentController::myPayments();
         break;
 
+    // GET /payments/my-event-tickets
+    case $method === 'GET' && $seg1 === 'my-event-tickets':
+        PaymentController::myEventTickets();
+        break;
+
     // GET /payments/admin/payments
     case $method === 'GET' && $seg1 === 'admin' && $seg2 === 'payments':
         PaymentController::adminList();
