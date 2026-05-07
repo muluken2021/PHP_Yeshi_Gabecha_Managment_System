@@ -17,14 +17,14 @@ class BookingController {
         authenticate();
         $d = self::json();
 
-        $required = ['eventType','guestCount','durationHours','eventDate','eventTime'];
+        $required = ['guestCount','durationHours'];
         foreach ($required as $f) {
             if (!isset($d[$f]) || $d[$f] === '') sendResponse(400, false, "Field '$f' is required");
         }
 
         $pricing = new PricingRule($conn);
         $result  = $pricing->calcPrice(
-            $d['eventType'],
+            'wedding',
             (int)$d['guestCount'],
             (int)$d['durationHours']
         );
@@ -38,16 +38,19 @@ class BookingController {
         $auth = authenticate();
         $d    = self::json();
 
-        $required = ['customerName','customerEmail','customerPhone','eventType',
+        $required = ['customerName','customerEmail','customerPhone',
                      'eventDate','eventTime','guestCount','durationHours'];
         foreach ($required as $f) {
             if (empty($d[$f])) sendResponse(400, false, "Field '$f' is required");
         }
 
+        // Always wedding
+        $eventType = 'wedding';
+
         // Calculate price
         $pricing    = new PricingRule($conn);
         $priceData  = $pricing->calcPrice(
-            $d['eventType'],
+            $eventType,
             (int)$d['guestCount'],
             (int)$d['durationHours']
         );
@@ -58,7 +61,7 @@ class BookingController {
             'customerName'  => $d['customerName'],
             'customerEmail' => $d['customerEmail'],
             'customerPhone' => $d['customerPhone'],
-            'eventType'     => $d['eventType'],
+            'eventType'     => $eventType,
             'eventDate'     => $d['eventDate'],
             'eventTime'     => $d['eventTime'],
             'guestCount'    => (int)$d['guestCount'],

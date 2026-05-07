@@ -68,7 +68,7 @@ CREATE TABLE events (
     id           CHAR(36) PRIMARY KEY,
     title        VARCHAR(255) NOT NULL,
     description  TEXT,
-    eventType    ENUM('wedding','birthday','corporate','decoration','catering','other') NOT NULL DEFAULT 'other',
+    eventType    ENUM('wedding') NOT NULL DEFAULT 'wedding',
     location     VARCHAR(255),
     latitude     FLOAT,
     longitude    FLOAT,
@@ -91,7 +91,7 @@ CREATE TABLE bookings (
     customerPhone   VARCHAR(50)  NOT NULL,
     serviceId       CHAR(36),
     serviceSnapshot JSON,
-    eventType       ENUM('wedding','birthday','corporate','other') DEFAULT 'wedding',
+    eventType       ENUM('wedding') DEFAULT 'wedding',
     eventDate       DATE,
     eventTime       TIME,
     guestCount      INT,
@@ -130,7 +130,7 @@ CREATE TABLE gallery (
     id            CHAR(36) PRIMARY KEY,
     title         VARCHAR(255) NOT NULL,
     description   TEXT,
-    category      ENUM('wedding','birthday','corporate','decoration','catering','other') NOT NULL,
+    category      ENUM('wedding') NOT NULL,
     location      VARCHAR(255),
     date          DATE,
     imageFilename VARCHAR(255) NOT NULL,
@@ -153,7 +153,7 @@ CREATE TABLE gallery_reactions (
 
 CREATE TABLE pricing_rules (
     id           CHAR(36) PRIMARY KEY,
-    eventType    ENUM('wedding','birthday','corporate','other') NOT NULL UNIQUE,
+    eventType    ENUM('wedding') NOT NULL UNIQUE,
     basePrice    INT NOT NULL,
     perGuest     INT NOT NULL,
     perHour      INT NOT NULL,
@@ -164,10 +164,7 @@ CREATE TABLE pricing_rules (
 
 -- Default pricing rules
 INSERT INTO pricing_rules (id, eventType, basePrice, perGuest, perHour, defaultHours) VALUES
-(UUID(), 'wedding',   10000, 50, 500, 8),
-(UUID(), 'birthday',   5000, 30, 300, 5),
-(UUID(), 'corporate',  8000, 40, 400, 6),
-(UUID(), 'other',      3000, 20, 200, 4);
+(UUID(), 'wedding', 10000, 50, 500, 8);
 
 CREATE TABLE payment_method_configs (
     id                    CHAR(36) PRIMARY KEY,

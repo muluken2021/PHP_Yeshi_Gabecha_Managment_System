@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import Masonry from 'react-masonry-css';
 import GalleryModal from '../components/GalleryModal.jsx';
 import { createGalleryItem, deleteGalleryItem, getGalleryItems, updateGalleryItem } from '../../api/gallery.js';
+import { getAssetUrl } from '../../utils/api.js';
 
 const Gallery = () => {
   const { t } = useTranslation();
@@ -22,11 +23,6 @@ const Gallery = () => {
   const categories = [
     'all',
     'wedding',
-    'birthday',
-    'corporate',
-    'decoration',
-    'catering',
-    'other'
   ];
 
   const loadImages = async () => {
@@ -37,7 +33,7 @@ const Gallery = () => {
       const list = Array.isArray(data?.galleryItems) ? data.galleryItems : [];
       const mapped = list.map((it) => ({
         id: it.id,
-        url: it.imageUrl,
+        url: getAssetUrl(it.imageUrl),
         title: it.title,
         description: it.description || '',
         category: it.category || 'other',
@@ -95,11 +91,12 @@ const Gallery = () => {
       try {
         setError('');
         await updateGalleryItem(currentImage.id, {
-          title: formData.title,
+          title:       formData.title,
           description: formData.description,
-          category: formData.category,
-          location: formData.location,
-          date: formData.date,
+          category:    formData.category,
+          location:    formData.location,
+          date:        formData.date,
+          imageFile:   formData.imageFile || undefined,
         });
         setModalOpen(false);
         setCurrentImage(null);

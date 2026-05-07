@@ -74,7 +74,7 @@ const EventDetails = () => {
 
           <div className="p-6">
             <div className="text-xs uppercase tracking-wide text-emerald-700 dark:text-emerald-400 font-semibold">
-              {event.eventType}
+              Wedding
             </div>
             <h1 className="mt-2 text-3xl font-bold text-neutral-800 dark:text-neutral-100">
               {event.title}

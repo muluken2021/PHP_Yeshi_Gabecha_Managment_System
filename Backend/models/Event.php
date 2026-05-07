@@ -20,7 +20,7 @@ class Event {
             $id,
             $data['title'],
             $data['description']  ?? null,
-            $data['eventType']    ?? 'other',
+            $data['eventType']    ?? 'wedding',
             $data['location']     ?? null,
             $data['latitude']     ?? null,
             $data['longitude']    ?? null,

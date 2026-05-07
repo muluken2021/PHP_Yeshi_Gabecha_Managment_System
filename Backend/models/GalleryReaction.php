@@ -26,6 +26,11 @@ class GalleryReaction {
         return $stmt->execute([$this->uuid(), $galleryId, $userId, $reaction]);
     }
 
+    public function getUserReaction(string $galleryId, string $userId): ?string {
+        $row = $this->findByGalleryAndUser($galleryId, $userId);
+        return $row ? $row['reaction'] : null;
+    }
+
     public function findByGalleryAndUser(string $galleryId, string $userId): ?array {
         $stmt = $this->conn->prepare(
             "SELECT * FROM {$this->table} WHERE galleryId = ? AND userId = ? LIMIT 1"

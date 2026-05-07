@@ -52,7 +52,6 @@ const Events = () => {
   const [form, setForm] = useState({
     title: '',
     description: '',
-    eventType: 'other',
     location: '',
     latitude: '',
     longitude: '',
@@ -60,7 +59,7 @@ const Events = () => {
     eventTime: '',
     ticketPrice: '',
     totalTickets: '',
-    status: 'draft',
+    status: 'active',
     imageFile: null,
   })
 
@@ -99,7 +98,6 @@ const Events = () => {
     setForm({
       title: '',
       description: '',
-      eventType: 'other',
       location: '',
       latitude: '',
       longitude: '',
@@ -120,7 +118,6 @@ const Events = () => {
     setForm({
       title: ev?.title || '',
       description: ev?.description || '',
-      eventType: ev?.eventType || 'other',
       location: ev?.location || '',
       latitude: ev?.latitude == null ? '' : String(ev.latitude),
       longitude: ev?.longitude == null ? '' : String(ev.longitude),
@@ -128,7 +125,7 @@ const Events = () => {
       eventTime: (ev?.eventTime || '').slice?.(0, 5) || '',
       ticketPrice: String(ev?.ticketPrice ?? ''),
       totalTickets: ev?.totalTickets == null ? '' : String(ev.totalTickets),
-      status: ev?.status || 'published',
+      status: ev?.status || 'active',
       imageFile: null,
     })
     setPlaceQuery('')
@@ -143,7 +140,6 @@ const Events = () => {
       const payload = {
         title: form.title,
         description: form.description || undefined,
-        eventType: form.eventType,
         location: form.location || undefined,
         latitude: form.latitude === '' ? null : Number(form.latitude),
         longitude: form.longitude === '' ? null : Number(form.longitude),
@@ -222,7 +218,7 @@ const Events = () => {
                 {ev.imageUrl ? <img src={getAssetUrl(ev.imageUrl)} alt={ev.title} className="w-full h-full object-cover" /> : null}
               </div>
               <div className="p-4 flex-grow">
-                <div className="text-xs font-semibold text-green-700 dark:text-green-300 uppercase">{ev.eventType}</div>
+                <div className="text-xs font-semibold text-green-700 dark:text-green-300 uppercase">Wedding</div>
                 <div className="mt-1 text-lg font-semibold text-gray-800 dark:text-gray-200">{ev.title}</div>
                 <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
                   {ev.eventDate} {String(ev.eventTime || '').slice(0, 5)}
@@ -286,21 +282,6 @@ const Events = () => {
                     rows={4}
                     className="w-full px-4 py-2 text-sm text-gray-700 bg-white border border-gray-200 rounded-md dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700 focus:border-purple-400 focus:ring-purple-300 focus:ring-opacity-40 focus:outline-none focus:ring"
                   />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Type</label>
-                  <select
-                    value={form.eventType}
-                    onChange={(e) => setForm((p) => ({ ...p, eventType: e.target.value }))}
-                    className="w-full px-4 py-2 text-sm text-gray-700 bg-white border border-gray-200 rounded-md dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700 focus:border-purple-400 focus:ring-purple-300 focus:ring-opacity-40 focus:outline-none focus:ring"
-                  >
-                    {['wedding', 'birthday', 'corporate', 'decoration', 'catering', 'other'].map((x) => (
-                      <option key={x} value={x}>
-                        {x}
-                      </option>
-                    ))}
-                  </select>
                 </div>
 
                 <div>

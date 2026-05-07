@@ -19,7 +19,6 @@ export const createEvent = async (payload) => {
   const fd = new FormData()
   fd.append('title', payload.title)
   if (payload.description) fd.append('description', payload.description)
-  fd.append('eventType', payload.eventType)
   if (payload.location) fd.append('location', payload.location)
   if (payload.latitude !== undefined && payload.latitude !== null && payload.latitude !== '') {
     fd.append('latitude', String(payload.latitude))
@@ -39,20 +38,20 @@ export const createEvent = async (payload) => {
 }
 
 export const updateEvent = async (id, payload) => {
-  // allow image update too
   const hasFile = payload?.imageFile instanceof File
   if (hasFile) {
     const fd = new FormData()
     Object.entries(payload).forEach(([k, v]) => {
-      if (v === undefined) return
-      if (k === 'imageFile') return
-      if (v === null) return
+      if (v === undefined || v === null) return
+      if (k === 'imageFile' || k === 'eventType') return
       fd.append(k, String(v))
     })
     fd.append('image', payload.imageFile)
     return api.put(`/events/${id}`, fd)
   }
-  return api.put(`/events/${id}`, payload)
+  // eslint-disable-next-line no-unused-vars
+  const { eventType, imageFile, ...rest } = payload
+  return api.put(`/events/${id}`, rest)
 }
 
 export const deleteEvent = (id) => api.delete(`/events/${id}`)

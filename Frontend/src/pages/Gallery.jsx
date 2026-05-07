@@ -28,6 +28,7 @@ import {
 
 import { getGalleryItems, setGalleryReaction } from '../api/gallery.js'
 import { useAuth } from '../contexts/AuthContext.jsx'
+import { getAssetUrl } from '../utils/api.js'
 
 const UltimateGallery = () => {
   const { t, i18n } = useTranslation()
@@ -41,13 +42,8 @@ const UltimateGallery = () => {
   const [sortBy, setSortBy] = useState('date')
 
   const categories = [
-    { id: 'all', name: isAmharic ? 'ሁሉም' : 'All', icon: <Grid size={18} /> },
-    { id: 'wedding', name: isAmharic ? 'ጋብቻ' : 'Wedding', icon: <Heart size={18} /> },
-    { id: 'birthday', name: isAmharic ? 'ልደት' : 'Birthday', icon: <Calendar size={18} /> },
-    { id: 'corporate', name: isAmharic ? 'የቢዝነስ' : 'Corporate', icon: <Users size={18} /> },
-    { id: 'decoration', name: isAmharic ? 'ዲኮሬሽን' : 'Decoration', icon: <MapPin size={18} /> },
-    { id: 'catering', name: isAmharic ? 'ምግብ' : 'Catering', icon: <Utensils size={18} /> },
-    { id: 'other', name: isAmharic ? 'ሌላ' : 'Other', icon: <Filter size={18} /> }
+    { id: 'all',     name: isAmharic ? 'ሁሉም'  : 'All',     icon: <Grid size={18} /> },
+    { id: 'wedding', name: isAmharic ? 'ጋብቻ'  : 'Wedding', icon: <Heart size={18} /> },
   ]
 
   const [galleryItems, setGalleryItems] = useState([])
@@ -66,7 +62,7 @@ const UltimateGallery = () => {
         setGalleryItems(
           items.map((it) => ({
             id: it.id,
-            image: it.imageUrl || '/public/bread.png',
+            image: getAssetUrl(it.imageUrl) || '/public/bread.png',
             title: it.title,
             description: it.description || '',
             category: it.category || 'other',
@@ -175,9 +171,9 @@ const UltimateGallery = () => {
       try {
         const res = await setGalleryReaction(galleryId, next)
         applyReactionToState(galleryId, {
-          likeCount: Number(res?.likeCount || 0),
-          dislikeCount: Number(res?.dislikeCount || 0),
-          myReaction: res?.myReaction || null,
+          likeCount:    Number(res?.likeCount    ?? 0),
+          dislikeCount: Number(res?.dislikeCount ?? 0),
+          myReaction:   res?.myReaction ?? null,
         })
       } catch (e) {
         alert(e?.message || (isAmharic ? 'አልተሳካም' : 'Failed'))
@@ -221,7 +217,7 @@ const UltimateGallery = () => {
     }
   }, [])
 
-  useState(() => {
+  useEffect(() => {
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [handleKeyDown])

@@ -1,5 +1,5 @@
 <?php
-// models/Gallery.php — matches gallery table (imageFilename + imageUrl, no reactions column)
+// models/Gallery.php — matches gallery table
 
 class Gallery {
     private PDO $conn;
@@ -29,15 +29,17 @@ class Gallery {
         return $this->findById($id);
     }
 
-    public function findById(string $id): ?array {
+    public function findById(string $id, ?string $userId = null): ?array {
         $stmt = $this->conn->prepare("SELECT * FROM {$this->table} WHERE id = ? LIMIT 1");
         $stmt->execute([$id]);
         $row = $stmt->fetch();
-        if ($row) $row['reactions'] = $this->getReactions($id);
-        return $row ?: null;
+        if (!$row) return null;
+
+        $row = $this->attachReactions([$row], $userId)[0];
+        return $row;
     }
 
-    public function getAll(int $limit = 20, int $offset = 0, array $filters = []): array {
+    public function getAll(int $limit = 20, int $offset = 0, array $filters = [], ?string $userId = null): array {
         $where  = ['1=1'];
         $params = [];
 
@@ -60,10 +62,8 @@ class Gallery {
         $stmt->execute($params);
         $rows = $stmt->fetchAll();
 
-        foreach ($rows as &$row) {
-            $row['reactions'] = $this->getReactions($row['id']);
-        }
-        return $rows;
+        if (empty($rows)) return [];
+        return $this->attachReactions($rows, $userId);
     }
 
     public function countAll(array $filters = []): int {
@@ -79,7 +79,7 @@ class Gallery {
     }
 
     public function update(string $id, array $data): ?array {
-        $allowed = ['title','description','category','location','date'];
+        $allowed = ['title','description','category','location','date','imageFilename','imageUrl'];
         $fields  = [];
         $values  = [];
 
@@ -104,18 +104,46 @@ class Gallery {
         return $stmt->execute([$id]);
     }
 
-    // ── Reactions (aggregated from gallery_reactions) ─────────
-    private function getReactions(string $galleryId): array {
+    // ── Attach reactions to a batch of rows (single query, no N+1) ────────────
+    private function attachReactions(array $rows, ?string $userId = null): array {
+        $ids = array_column($rows, 'id');
+        if (empty($ids)) return $rows;
+
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+
+        // Aggregate counts
         $stmt = $this->conn->prepare(
-            "SELECT reaction, COUNT(*) as count
-             FROM gallery_reactions WHERE galleryId = ? GROUP BY reaction"
+            "SELECT galleryId, reaction, COUNT(*) as cnt
+             FROM gallery_reactions
+             WHERE galleryId IN ($placeholders)
+             GROUP BY galleryId, reaction"
         );
-        $stmt->execute([$galleryId]);
-        $result = [];
-        foreach ($stmt->fetchAll() as $row) {
-            $result[$row['reaction']] = (int) $row['count'];
+        $stmt->execute($ids);
+        $counts = [];
+        foreach ($stmt->fetchAll() as $r) {
+            $counts[$r['galleryId']][$r['reaction']] = (int)$r['cnt'];
         }
-        return $result;
+
+        // Per-user reactions
+        $myReactions = [];
+        if ($userId) {
+            $stmt2 = $this->conn->prepare(
+                "SELECT galleryId, reaction FROM gallery_reactions
+                 WHERE galleryId IN ($placeholders) AND userId = ?"
+            );
+            $stmt2->execute(array_merge($ids, [$userId]));
+            foreach ($stmt2->fetchAll() as $r) {
+                $myReactions[$r['galleryId']] = $r['reaction'];
+            }
+        }
+
+        foreach ($rows as &$row) {
+            $gid = $row['id'];
+            $row['likeCount']    = (int)($counts[$gid]['like']    ?? 0);
+            $row['dislikeCount'] = (int)($counts[$gid]['dislike'] ?? 0);
+            $row['myReaction']   = $myReactions[$gid] ?? null;
+        }
+        return $rows;
     }
 
     private function uuid(): string {

@@ -27,8 +27,21 @@ export const createGalleryItem = async (payload) => {
   return api.post('/gallery', formData)
 }
 
-export const updateGalleryItem = (id, payload) => api.put(`/gallery/${id}`, payload)
+export const updateGalleryItem = (id, payload) => {
+  // If an imageFile is provided, send as multipart
+  if (payload?.imageFile instanceof File) {
+    const fd = new FormData()
+    Object.entries(payload).forEach(([k, v]) => {
+      if (k === 'imageFile' || v === undefined || v === null) return
+      fd.append(k, String(v))
+    })
+    fd.append('image', payload.imageFile)
+    return api.put(`/gallery/${id}`, fd)
+  }
+  return api.put(`/gallery/${id}`, payload)
+}
 
 export const deleteGalleryItem = (id) => api.delete(`/gallery/${id}`)
 
-export const setGalleryReaction = (id, reaction) => api.post(`/gallery/${id}/reaction`, { reaction })
+export const setGalleryReaction = (id, reaction) =>
+  api.post(`/gallery/${id}/reaction`, { reaction: reaction ?? null })

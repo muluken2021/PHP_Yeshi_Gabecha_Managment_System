@@ -181,10 +181,10 @@ const GalleryModal = ({ mode, image, categories, onClose, onUpload, onUpdate, up
                       className="w-full px-4 py-3 text-sm text-gray-900 bg-white/70 border border-gray-200 rounded-xl dark:bg-white/5 dark:text-gray-100 dark:border-white/10 focus:border-purple-400 focus:ring-purple-300 focus:ring-opacity-40 focus:outline-none focus:ring"
                     />
                   </div>
-                  {mode === 'upload' && (
+                  {(mode === 'upload' || mode === 'edit') && (
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        {t('image')} *
+                        {t('image')} {mode === 'upload' ? '*' : '(leave empty to keep current)'}
                       </label>
                       <input
                         type="file"
@@ -192,8 +192,14 @@ const GalleryModal = ({ mode, image, categories, onClose, onUpload, onUpdate, up
                         onChange={handleFormChange}
                         className="block w-full text-sm text-gray-600 dark:text-gray-300 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700"
                         accept="image/*"
-                        required
+                        required={mode === 'upload'}
                       />
+                      {mode === 'edit' && image?.url && (
+                        <div className="mt-2">
+                          <img src={image.url} alt="current" className="h-16 w-16 object-cover rounded-lg border border-gray-200 dark:border-gray-700" />
+                          <p className="text-xs text-gray-400 mt-1">Current image</p>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

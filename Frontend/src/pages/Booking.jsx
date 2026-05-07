@@ -22,7 +22,6 @@ const Booking = () => {
     name: '',
     phone: '',
     email: '',
-    eventType: '',
     eventDate: '',
     eventTime: '',
     durationHours: '5',
@@ -68,11 +67,8 @@ const Booking = () => {
         setError('')
 
         const quote = await calcBookingPrice({
-          eventType: formData.eventType,
           guestCount: Number(formData.guestCount),
           durationHours: Number(formData.durationHours || 5),
-          eventDate: formData.eventDate,
-          eventTime: formData.eventTime,
         })
         setPriceQuote(quote)
 
@@ -80,7 +76,6 @@ const Booking = () => {
           customerName: formData.name,
           customerEmail: formData.email,
           customerPhone: formData.phone,
-          eventType: formData.eventType,
           eventDate: formData.eventDate,
           eventTime: formData.eventTime,
           guestCount: Number(formData.guestCount),
@@ -102,15 +97,7 @@ const Booking = () => {
     return priceQuote?.totalPrice || 0
   }, [priceQuote])
 
-  const getServiceName = () => {
-    const services = {
-      wedding: isAmharic ? 'ጋብቻ' : 'Wedding',
-      birthday: isAmharic ? 'ልደት' : 'Birthday',
-      corporate: isAmharic ? 'የቢዝነስ' : 'Corporate',
-      other: isAmharic ? 'ሌላ' : 'Other'
-    }
-    return services[formData.eventType] || (isAmharic ? 'አገልግሎት' : 'Service')
-  }
+  const getServiceName = () => isAmharic ? 'ጋብቻ' : 'Wedding'
 
   const handlePaymentSuccess = (data) => {
     if (!bookingId) {
@@ -446,21 +433,11 @@ const Booking = () => {
 
                 <div>
                   <label className="block text-neutral-700 dark:text-neutral-300 mb-2 font-medium">
-                    {isAmharic ? 'የበዓል አይነት' : 'Event Type'} *
+                    {isAmharic ? 'የበዓል አይነት' : 'Event Type'}
                   </label>
-                  <select
-                    name="eventType"
-                    value={formData.eventType}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3 border border-neutral-300 dark:border-neutral-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 dark:bg-neutral-700 dark:text-neutral-100"
-                    required
-                  >
-                    <option value="">{isAmharic ? 'ምረጥ' : 'Select'}</option>
-                    <option value="wedding">{isAmharic ? 'ጋብቻ' : 'Wedding'}</option>
-                    <option value="birthday">{isAmharic ? 'ልደት' : 'Birthday'}</option>
-                    <option value="corporate">{isAmharic ? 'የቢዝነስ' : 'Corporate'}</option>
-                    <option value="other">{isAmharic ? 'ሌላ' : 'Other'}</option>
-                  </select>
+                  <div className="w-full px-4 py-3 border border-neutral-300 dark:border-neutral-600 rounded-lg bg-neutral-50 dark:bg-neutral-700/50 text-neutral-700 dark:text-neutral-300 font-medium">
+                    💍 {isAmharic ? 'ጋብቻ' : 'Wedding'}
+                  </div>
                 </div>
 
                 <div>

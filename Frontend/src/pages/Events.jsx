@@ -83,7 +83,7 @@ const Events = () => {
                 </div>
                 <div className="p-5">
                   <div className="text-xs uppercase tracking-wide text-emerald-700 dark:text-emerald-400 font-semibold">
-                    {ev.eventType}
+                    Wedding
                   </div>
                   <h3 className="mt-2 text-sm text-gray-600 dark:text-gray-400">
                     {ev.eventDate} {String(ev.eventTime || '').slice(0, 5)}

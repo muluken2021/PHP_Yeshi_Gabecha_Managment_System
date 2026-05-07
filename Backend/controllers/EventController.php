@@ -52,7 +52,7 @@ class EventController {
         authorizeAdmin();
 
         $d        = $_POST;
-        $required = ['title','eventType','eventDate','eventTime','ticketPrice'];
+        $required = ['title','eventDate','eventTime','ticketPrice'];
         foreach ($required as $f) {
             if (empty($d[$f])) sendResponse(400, false, "Field '$f' is required");
         }
@@ -72,7 +72,7 @@ class EventController {
         $event = $model->create([
             'title'        => $d['title'],
             'description'  => $d['description']  ?? null,
-            'eventType'    => $d['eventType'],
+            'eventType'    => 'wedding',
             'location'     => $d['location']     ?? null,
             'latitude'     => isset($d['latitude'])  && $d['latitude']  !== '' ? (float)$d['latitude']  : null,
             'longitude'    => isset($d['longitude']) && $d['longitude'] !== '' ? (float)$d['longitude'] : null,
@@ -101,7 +101,6 @@ class EventController {
         $data = array_filter([
             'title'        => $d['title']        ?? null,
             'description'  => $d['description']  ?? null,
-            'eventType'    => $d['eventType']     ?? null,
             'location'     => $d['location']      ?? null,
             'latitude'     => isset($d['latitude'])  && $d['latitude']  !== '' ? (float)$d['latitude']  : null,
             'longitude'    => isset($d['longitude']) && $d['longitude'] !== '' ? (float)$d['longitude'] : null,
