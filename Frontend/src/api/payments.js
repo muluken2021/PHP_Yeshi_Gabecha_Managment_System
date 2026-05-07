@@ -22,7 +22,9 @@ export const getAdminPayments = (params = {}) => {
   return api.get(`/payments/admin/payments${suffix}`)
 }
 
-export const approvePayment = (paymentId) => api.post(`/payments/${paymentId}/process`, { simulateSuccess: true })
+export const approvePayment = (paymentId) => api.post(`/payments/${paymentId}/process`, { action: 'approve' })
+
+export const rejectPayment  = (paymentId) => api.post(`/payments/${paymentId}/process`, { action: 'reject' })
 
 export const uploadPaymentProof = (paymentId, file) => {
   const fd = new FormData()

@@ -80,9 +80,14 @@ class Payment {
             $where[] = 'p.bookingId IS NOT NULL';
         }
 
-        $sql = "SELECT p.*, u.firstName, u.lastName, u.email as userEmail
+        $sql = "SELECT p.*,
+                       u.firstName, u.lastName, u.email as userEmail,
+                       e.title as eventTitle,
+                       b.customerName as bookingCustomerName
                 FROM {$this->table} p
-                LEFT JOIN users u ON p.userId = u.id
+                LEFT JOIN users    u ON p.userId    = u.id
+                LEFT JOIN events   e ON p.eventId   = e.id
+                LEFT JOIN bookings b ON p.bookingId = b.id
                 WHERE " . implode(' AND ', $where)
              . " ORDER BY p.createdAt DESC LIMIT ? OFFSET ?";
         $params[] = $limit;
@@ -96,12 +101,12 @@ class Payment {
     public function countAll(array $filters = []): int {
         $where  = ['1=1'];
         $params = [];
-        if (!empty($filters['status']))    { $where[] = 'status = ?';          $params[] = $filters['status']; }
-        if (!empty($filters['userId']))    { $where[] = 'userId = ?';          $params[] = $filters['userId']; }
-        if (!empty($filters['eventOnly'])) { $where[] = 'eventId IS NOT NULL'; }
+        if (!empty($filters['status']))    { $where[] = 'p.status = ?';          $params[] = $filters['status']; }
+        if (!empty($filters['userId']))    { $where[] = 'p.userId = ?';          $params[] = $filters['userId']; }
+        if (!empty($filters['eventOnly'])) { $where[] = 'p.eventId IS NOT NULL'; }
 
         $stmt = $this->conn->prepare(
-            "SELECT COUNT(*) FROM {$this->table} WHERE " . implode(' AND ', $where)
+            "SELECT COUNT(*) FROM {$this->table} p WHERE " . implode(' AND ', $where)
         );
         $stmt->execute($params);
         return (int) $stmt->fetchColumn();

@@ -170,8 +170,19 @@ class PaymentController {
         $payment = $model->findById($id);
 
         if (!$payment) sendResponse(404, false, 'Payment not found');
+        if ($payment['status'] !== 'pending') {
+            sendResponse(400, false, 'Payment has already been processed');
+        }
 
-        $approve = !empty($d['simulateSuccess']) || ($d['action'] ?? '') === 'approve';
+        // Determine action: accept 'approve'/'reject' or legacy simulateSuccess
+        $action  = $d['action'] ?? '';
+        $approve = ($action === 'approve') || !empty($d['simulateSuccess']);
+        $reject  = ($action === 'reject');
+
+        if (!$approve && !$reject) {
+            sendResponse(400, false, "action must be 'approve' or 'reject'");
+        }
+
         $newStatus = $approve ? 'completed' : 'failed';
 
         $updated = $model->update($id, [
@@ -202,7 +213,7 @@ class PaymentController {
             $eventModel->incrementSold($payment['eventId']);
         }
 
-        // Notify admin
+        // Notify
         try {
             $notif = new Notification($conn);
             $notif->create([
@@ -213,7 +224,7 @@ class PaymentController {
             ]);
         } catch (Throwable $e) {}
 
-        sendResponse(200, true, 'Payment processed', $updated);
+        sendResponse(200, true, 'Payment ' . ($approve ? 'approved' : 'rejected'), $updated);
     }
 
     private static function json(): array {
