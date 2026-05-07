@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
@@ -17,7 +17,8 @@ import {
   ArrowLeft,
   Key,
   CheckCircle,
-  RefreshCw
+  RefreshCw,
+  X
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
@@ -74,38 +75,37 @@ const resetPasswordSchema = (isAmharic) => z.object({
   path: ['confirmPassword']
 });
 
-// Forget Password Component
+// ── Forgot Password Modal ─────────────────────────────────────────────────────
 const ForgetPassword = ({ isAmharic, onClose }) => {
   const { showToast } = useToast()
 
-  const [step, setStep] = useState('email')
-  const [submittedEmail, setSubmittedEmail] = useState('')
+  const [step, setStep]               = useState('email')
+  const [email, setEmail]             = useState('')
+  const [emailError, setEmailError]   = useState('')
+  const [otp, setOtp]                 = useState('')
+  const [otpError, setOtpError]       = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPw, setConfirmPw]     = useState('')
+  const [pwError, setPwError]         = useState('')
+  const [showPw, setShowPw]           = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
+  const [loading, setLoading]         = useState(false)
+  const [resendCooldown, setResendCooldown] = useState(0)
 
-  const {
-    register: registerEmail,
-    handleSubmit: handleSubmitEmail,
-    formState: { errors: emailErrors },
-  } = useForm({
-    resolver: zodResolver(forgotPasswordSchema(isAmharic)),
-    defaultValues: { email: '' },
-  })
+  useEffect(() => {
+    if (resendCooldown <= 0) return
+    const t = setTimeout(() => setResendCooldown(c => c - 1), 1000)
+    return () => clearTimeout(t)
+  }, [resendCooldown])
 
-  const [loading, setLoading] = useState(false)
-  const [resetLoading, setResetLoading] = useState(false)
-
-  const onEmailSubmit = async (data) => {
+  const sendOtp = async (emailVal) => {
     setLoading(true)
     try {
       const api = (await import('../utils/api.js')).default
-      await api.post('/auth/forgot-password', { email: data.email })
-      showToast(
-        isAmharic
-          ? 'OTP ካለ ወደ ኢሜይልዎ ተልኳል'
-          : 'If the email exists, an OTP has been sent.',
-        'success'
-      )
-      setSubmittedEmail(data.email)
-      setStep('reset')
+      await api.post('/auth/forgot-password', { email: emailVal })
+      showToast(isAmharic ? 'OTP ወደ ኢሜይልዎ ተልኳል' : 'OTP sent to your email', 'success')
+      setStep('otp')
+      setResendCooldown(60)
     } catch (e) {
       showToast(e?.message || (isAmharic ? 'ስህተት ተከስቷል' : 'Request failed'), 'error')
     } finally {
@@ -113,220 +113,315 @@ const ForgetPassword = ({ isAmharic, onClose }) => {
     }
   }
 
-  const {
-    register: registerReset,
-    handleSubmit: handleSubmitReset,
-    formState: { errors: resetErrors },
-    reset: resetResetForm,
-  } = useForm({
-    resolver: zodResolver(
-      z
-        .object({
-          otp: otpSchema(isAmharic).shape.otp,
-          newPassword: resetPasswordSchema(isAmharic).shape.newPassword,
-          confirmPassword: resetPasswordSchema(isAmharic).shape.confirmPassword,
-        })
-        .refine((data) => data.newPassword === data.confirmPassword, {
-          message: isAmharic ? 'የይለፍ ቃሎች አይጣጣሙም' : 'Passwords do not match',
-          path: ['confirmPassword'],
-        })
-    ),
-    defaultValues: { otp: '', newPassword: '', confirmPassword: '' },
-  })
-
-  const onResetSubmit = async (data) => {
-    if (!submittedEmail) {
-      showToast(isAmharic ? 'ኢሜይል ጎድሏል' : 'Email is missing', 'error')
+  const handleEmailSubmit = async (e) => {
+    e.preventDefault()
+    setEmailError('')
+    const trimmed = email.trim()
+    if (!trimmed) { setEmailError(isAmharic ? 'ኢሜይል ያስፈልጋል' : 'Email is required'); return }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+      setEmailError(isAmharic ? 'ትክክለኛ ኢሜይል ያስገቡ' : 'Enter a valid email address')
       return
     }
+    await sendOtp(trimmed)
+  }
 
-    setResetLoading(true)
+  const handleOtpSubmit = (e) => {
+    e.preventDefault()
+    setOtpError('')
+    if (!/^\d{6}$/.test(otp)) {
+      setOtpError(isAmharic ? '6 ቁጥር OTP ያስፈልጋል' : '6-digit OTP is required')
+      return
+    }
+    setStep('reset')
+  }
+
+  const handleResetSubmit = async (e) => {
+    e.preventDefault()
+    setPwError('')
+    if (newPassword.length < 8)              { setPwError(isAmharic ? 'ቢያንስ 8 ቁምፊ' : 'At least 8 characters'); return }
+    if (!/[a-z]/.test(newPassword))          { setPwError(isAmharic ? 'አንድ ትንሽ ፊደል ያስፈልጋል' : 'One lowercase letter required'); return }
+    if (!/[A-Z]/.test(newPassword))          { setPwError(isAmharic ? 'አንድ ትልቅ ፊደል ያስፈልጋል' : 'One uppercase letter required'); return }
+    if (!/[0-9]/.test(newPassword))          { setPwError(isAmharic ? 'አንድ ቁጥር ያስፈልጋል' : 'One number required'); return }
+    if (!/[!@#$%^&*()\-_=+[\]{};':",.<>/?]/.test(newPassword)) {
+      setPwError(isAmharic ? 'አንድ ልዩ ቁምፊ ያስፈልጋል' : 'One special character required'); return
+    }
+    if (newPassword !== confirmPw)           { setPwError(isAmharic ? 'የይለፍ ቃሎች አይጣጣሙም' : 'Passwords do not match'); return }
+
+    setLoading(true)
     try {
       const api = (await import('../utils/api.js')).default
-      await api.post('/auth/reset-password', {
-        email: submittedEmail,
-        otp: data.otp,
-        newPassword: data.newPassword,
-      })
-
-      showToast(
-        isAmharic ? 'የይለፍ ቃል ተቀይሯል። እባክዎ ይግቡ።' : 'Password reset successfully. Please login.',
-        'success'
-      )
-      resetResetForm()
-      onClose()
+      await api.post('/auth/reset-password', { email, otp, newPassword })
+      setStep('done')
     } catch (e) {
-      showToast(e?.message || (isAmharic ? 'ማደስ አልተሳካም' : 'Reset failed'), 'error')
+      setPwError(e?.message || (isAmharic ? 'ማደስ አልተሳካም' : 'Reset failed'))
     } finally {
-      setResetLoading(false)
+      setLoading(false)
     }
   }
 
+  const steps = [
+    { key: 'email', label: isAmharic ? 'ኢሜይል' : 'Email' },
+    { key: 'otp',   label: 'OTP' },
+    { key: 'reset', label: isAmharic ? 'ቀይር' : 'Reset' },
+  ]
+  const stepIndex = { email: 0, otp: 1, reset: 2, done: 3 }
+
+  const inputCls = (hasErr) =>
+    `w-full px-4 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 dark:bg-neutral-700 dark:text-neutral-100 transition-colors ${
+      hasErr
+        ? 'border-red-400 focus:ring-red-400 dark:border-red-500'
+        : 'border-neutral-300 dark:border-neutral-600 focus:ring-yellow-500 dark:focus:ring-yellow-400'
+    }`
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center p-4 z-50">
+    <div className="fixed inset-0 bg-black/60 dark:bg-black/75 flex items-center justify-center p-4 z-50">
       <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.95 }}
-        className="bg-white dark:bg-neutral-800 rounded-xl shadow-2xl dark:shadow-neutral-900/50 max-w-md w-full p-6"
+        initial={{ opacity: 0, scale: 0.95, y: 10 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 10 }}
+        transition={{ duration: 0.2 }}
+        className="bg-white dark:bg-neutral-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
       >
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center space-x-2">
-            <div className="w-10 h-10 rounded-full bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center">
-              <Key size={20} className="text-yellow-600 dark:text-yellow-400" />
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-200 dark:border-neutral-700">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-full bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center">
+              <Key size={18} className="text-yellow-600 dark:text-yellow-400" />
             </div>
             <div>
-              <h3 className="font-bold text-lg text-neutral-800 dark:text-neutral-200">
-                {isAmharic ? 'የይለፍ ቃል ረሳኽው?' : 'Forgot password?'}
+              <h3 className="font-bold text-neutral-800 dark:text-neutral-100 text-base leading-tight">
+                {isAmharic ? 'የይለፍ ቃል ዳግም ማስጀመር' : 'Reset Password'}
               </h3>
               <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                {isAmharic ? 'ኢሜይልዎን ያስገቡ' : 'Enter your email'}
+                {step === 'email' && (isAmharic ? 'ኢሜይልዎን ያስገቡ' : 'Enter your email to receive an OTP')}
+                {step === 'otp'   && (isAmharic ? 'OTP ያስገቡ' : `OTP sent to ${email}`)}
+                {step === 'reset' && (isAmharic ? 'አዲስ የይለፍ ቃል ያስገቡ' : 'Create your new password')}
+                {step === 'done'  && (isAmharic ? 'ተሳክቷል!' : 'All done!')}
               </p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="text-neutral-400 dark:text-neutral-500 hover:text-neutral-600 dark:hover:text-neutral-300"
-          >
-            ✕
+          <button onClick={onClose} className="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 p-1 rounded-lg transition-colors">
+            <X size={18} />
           </button>
         </div>
 
-        {step === 'email' ? (
-          <form onSubmit={handleSubmitEmail(onEmailSubmit)} className="space-y-4">
-            <div>
-              <label className="block text-neutral-700 dark:text-neutral-300 mb-2 text-sm font-medium">
-                {isAmharic ? 'ኢሜይል' : 'Email'} *
-              </label>
-              <div className="relative">
-                <Mail
-                  className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${emailErrors.email ? 'text-red-500 dark:text-red-400' : 'text-neutral-400 dark:text-neutral-500'}`}
-                  size={18}
-                />
-                <input
-                  type="email"
-                  {...registerEmail('email')}
-                  className={`w-full pl-10 pr-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 dark:focus:ring-yellow-400 dark:bg-neutral-700 dark:text-neutral-100 transition-all duration-200 ${
-                    emailErrors.email ? 'border-red-500 dark:border-red-500' : 'border-neutral-300 dark:border-neutral-600'
-                  }`}
-                  placeholder={isAmharic ? 'ኢሜይልዎን ያስገቡ' : 'Enter your email'}
-                />
+        {/* Step indicator */}
+        {step !== 'done' && (
+          <div className="flex items-center px-6 pt-4 pb-1 gap-1">
+            {steps.map((s, i) => (
+              <div key={s.key} className="flex items-center gap-1 flex-1">
+                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 transition-colors ${
+                  stepIndex[step] > i  ? 'bg-yellow-500 text-white' :
+                  stepIndex[step] === i ? 'bg-yellow-500 text-white ring-2 ring-yellow-200 dark:ring-yellow-800' :
+                                          'bg-neutral-200 dark:bg-neutral-700 text-neutral-500'
+                }`}>
+                  {stepIndex[step] > i ? <CheckCircle size={13} /> : i + 1}
+                </div>
+                <span className={`text-xs font-medium ${stepIndex[step] >= i ? 'text-neutral-700 dark:text-neutral-300' : 'text-neutral-400'}`}>
+                  {s.label}
+                </span>
+                {i < steps.length - 1 && (
+                  <div className={`flex-1 h-0.5 rounded mx-1 ${stepIndex[step] > i ? 'bg-yellow-400' : 'bg-neutral-200 dark:bg-neutral-700'}`} />
+                )}
               </div>
-              {emailErrors.email && (
-                <div className="flex items-center mt-1">
-                  <AlertCircle size={14} className="text-red-500 dark:text-red-400 mr-1" />
-                  <p className="text-red-500 dark:text-red-400 text-xs">{emailErrors.email.message}</p>
-                </div>
-              )}
-            </div>
-
-            <div className="flex space-x-3 pt-2">
-              <button
-                type="button"
-                onClick={onClose}
-                className="flex-1 py-2.5 border border-neutral-300 dark:border-neutral-600 rounded-lg text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors"
-              >
-                {isAmharic ? 'ዝጋ' : 'Cancel'}
-              </button>
-              <button
-                type="submit"
-                disabled={loading}
-                className="flex-1 bg-yellow-600 hover:bg-yellow-700 dark:bg-yellow-700 dark:hover:bg-yellow-600 text-white py-2.5 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {loading ? (isAmharic ? 'በመላክ ላይ...' : 'Sending...') : (isAmharic ? 'ላክ' : 'Send')}
-              </button>
-            </div>
-          </form>
-        ) : (
-          <form onSubmit={handleSubmitReset(onResetSubmit)} className="space-y-4">
-            <div>
-              <label className="block text-neutral-700 dark:text-neutral-300 mb-2 text-sm font-medium">
-                {isAmharic ? 'OTP' : 'OTP'} *
-              </label>
-              <input
-                inputMode="numeric"
-                {...registerReset('otp')}
-                className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 dark:focus:ring-yellow-400 dark:bg-neutral-700 dark:text-neutral-100 transition-all duration-200 ${
-                  resetErrors.otp ? 'border-red-500 dark:border-red-500' : 'border-neutral-300 dark:border-neutral-600'
-                }`}
-                placeholder={isAmharic ? '6 ቁጥር OTP' : '6-digit OTP'}
-                onChange={(e) => {
-                  const v = e.target.value.replace(/\D/g, '').slice(0, 6)
-                  e.target.value = v
-                }}
-              />
-              {resetErrors.otp && (
-                <div className="flex items-center mt-1">
-                  <AlertCircle size={14} className="text-red-500 dark:text-red-400 mr-1" />
-                  <p className="text-red-500 dark:text-red-400 text-xs">{resetErrors.otp.message}</p>
-                </div>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-neutral-700 dark:text-neutral-300 mb-2 text-sm font-medium">
-                {isAmharic ? 'አዲስ የይለፍ ቃል' : 'New Password'} *
-              </label>
-              <input
-                type="password"
-                {...registerReset('newPassword')}
-                className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 dark:focus:ring-yellow-400 dark:bg-neutral-700 dark:text-neutral-100 transition-all duration-200 ${
-                  resetErrors.newPassword ? 'border-red-500 dark:border-red-500' : 'border-neutral-300 dark:border-neutral-600'
-                }`}
-              />
-              {resetErrors.newPassword && (
-                <div className="flex items-center mt-1">
-                  <AlertCircle size={14} className="text-red-500 dark:text-red-400 mr-1" />
-                  <p className="text-red-500 dark:text-red-400 text-xs">{resetErrors.newPassword.message}</p>
-                </div>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-neutral-700 dark:text-neutral-300 mb-2 text-sm font-medium">
-                {isAmharic ? 'አረጋግጥ' : 'Confirm Password'} *
-              </label>
-              <input
-                type="password"
-                {...registerReset('confirmPassword')}
-                className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 dark:focus:ring-yellow-400 dark:bg-neutral-700 dark:text-neutral-100 transition-all duration-200 ${
-                  resetErrors.confirmPassword ? 'border-red-500 dark:border-red-500' : 'border-neutral-300 dark:border-neutral-600'
-                }`}
-              />
-              {resetErrors.confirmPassword && (
-                <div className="flex items-center mt-1">
-                  <AlertCircle size={14} className="text-red-500 dark:text-red-400 mr-1" />
-                  <p className="text-red-500 dark:text-red-400 text-xs">{resetErrors.confirmPassword.message}</p>
-                </div>
-              )}
-            </div>
-
-            <div className="flex space-x-3 pt-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setStep('email')
-                  setSubmittedEmail('')
-                  resetResetForm()
-                }}
-                className="flex-1 py-2.5 border border-neutral-300 dark:border-neutral-600 rounded-lg text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors"
-              >
-                {isAmharic ? 'ተመለስ' : 'Back'}
-              </button>
-              <button
-                type="submit"
-                disabled={resetLoading}
-                className="flex-1 bg-yellow-600 hover:bg-yellow-700 dark:bg-yellow-700 dark:hover:bg-yellow-600 text-white py-2.5 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {resetLoading ? (isAmharic ? 'በመቀየር ላይ...' : 'Resetting...') : (isAmharic ? 'ቀይር' : 'Reset')}
-              </button>
-            </div>
-          </form>
+            ))}
+          </div>
         )}
+
+        <div className="px-6 py-5">
+
+          {/* Step 1 — Email */}
+          {step === 'email' && (
+            <form onSubmit={handleEmailSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1.5">
+                  {isAmharic ? 'ኢሜይል አድራሻ' : 'Email address'} *
+                </label>
+                <div className="relative">
+                  <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 dark:text-neutral-500" />
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={e => { setEmail(e.target.value); setEmailError('') }}
+                    className={`${inputCls(!!emailError)} pl-9`}
+                    placeholder="you@example.com"
+                    autoFocus
+                  />
+                </div>
+                {emailError && (
+                  <p className="flex items-center gap-1 mt-1 text-xs text-red-500 dark:text-red-400">
+                    <AlertCircle size={12} /> {emailError}
+                  </p>
+                )}
+              </div>
+              <div className="flex gap-3 pt-1">
+                <button type="button" onClick={onClose}
+                  className="flex-1 py-2.5 border border-neutral-300 dark:border-neutral-600 rounded-lg text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors">
+                  {isAmharic ? 'ዝጋ' : 'Cancel'}
+                </button>
+                <button type="submit" disabled={loading}
+                  className="flex-1 py-2.5 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
+                  {loading
+                    ? <><RefreshCw size={14} className="animate-spin" /> {isAmharic ? 'በመላክ...' : 'Sending...'}</>
+                    : (isAmharic ? 'OTP ላክ' : 'Send OTP')}
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* Step 2 — OTP */}
+          {step === 'otp' && (
+            <form onSubmit={handleOtpSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1.5">
+                  {isAmharic ? '6-ቁጥር OTP' : '6-digit OTP'} *
+                </label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={otp}
+                  onChange={e => { setOtp(e.target.value.replace(/\D/g, '').slice(0, 6)); setOtpError('') }}
+                  className={`${inputCls(!!otpError)} text-center text-2xl tracking-[0.5em] font-mono`}
+                  placeholder="000000"
+                  maxLength={6}
+                  autoFocus
+                />
+                {otpError && (
+                  <p className="flex items-center gap-1 mt-1 text-xs text-red-500 dark:text-red-400">
+                    <AlertCircle size={12} /> {otpError}
+                  </p>
+                )}
+                <div className="flex items-center justify-between mt-2">
+                  <span className="text-xs text-neutral-500 dark:text-neutral-400">
+                    {isAmharic ? 'OTP አልደረሰዎትም?' : "Didn't receive the OTP?"}
+                  </span>
+                  <button type="button" disabled={resendCooldown > 0 || loading} onClick={() => sendOtp(email)}
+                    className="text-xs font-medium text-yellow-600 dark:text-yellow-400 hover:text-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1">
+                    <RefreshCw size={11} />
+                    {resendCooldown > 0
+                      ? `${isAmharic ? 'እንደገና ላክ' : 'Resend'} (${resendCooldown}s)`
+                      : (isAmharic ? 'እንደገና ላክ' : 'Resend')}
+                  </button>
+                </div>
+              </div>
+              <div className="flex gap-3 pt-1">
+                <button type="button" onClick={() => { setStep('email'); setOtp(''); setOtpError('') }}
+                  className="flex-1 py-2.5 border border-neutral-300 dark:border-neutral-600 rounded-lg text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors flex items-center justify-center gap-1">
+                  <ArrowLeft size={14} /> {isAmharic ? 'ተመለስ' : 'Back'}
+                </button>
+                <button type="submit"
+                  className="flex-1 py-2.5 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg text-sm font-semibold transition-colors">
+                  {isAmharic ? 'አረጋግጥ' : 'Verify OTP'}
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* Step 3 — New Password */}
+          {step === 'reset' && (
+            <form onSubmit={handleResetSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1.5">
+                  {isAmharic ? 'አዲስ የይለፍ ቃል' : 'New password'} *
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPw ? 'text' : 'password'}
+                    value={newPassword}
+                    onChange={e => { setNewPassword(e.target.value); setPwError('') }}
+                    className={`${inputCls(!!pwError)} pr-10`}
+                    placeholder={isAmharic ? 'አዲስ የይለፍ ቃል' : 'New password'}
+                    autoFocus
+                  />
+                  <button type="button" onClick={() => setShowPw(v => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300">
+                    {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 mt-2">
+                  {[
+                    [/[a-z]/,    isAmharic ? 'ትንሽ ፊደል'   : 'Lowercase'],
+                    [/[A-Z]/,    isAmharic ? 'ትልቅ ፊደል'   : 'Uppercase'],
+                    [/[0-9]/,    isAmharic ? 'ቁጥር'        : 'Number'],
+                    [/[!@#$%^&*()\-_=+[\]{};':",.<>/?]/, isAmharic ? 'ልዩ ቁምፊ' : 'Special char'],
+                    [/.{8,}/,    isAmharic ? 'ቢያንስ 8 ቁምፊ' : '8+ characters'],
+                  ].map(([regex, label]) => (
+                    <span key={label} className={`flex items-center gap-1 text-xs ${
+                      regex.test(newPassword) ? 'text-green-600 dark:text-green-400' : 'text-neutral-400 dark:text-neutral-500'
+                    }`}>
+                      <CheckCircle size={10} /> {label}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1.5">
+                  {isAmharic ? 'የይለፍ ቃል አረጋግጥ' : 'Confirm password'} *
+                </label>
+                <div className="relative">
+                  <input
+                    type={showConfirm ? 'text' : 'password'}
+                    value={confirmPw}
+                    onChange={e => { setConfirmPw(e.target.value); setPwError('') }}
+                    className={`${inputCls(!!pwError)} pr-10`}
+                    placeholder={isAmharic ? 'ያረጋግጡ' : 'Confirm password'}
+                  />
+                  <button type="button" onClick={() => setShowConfirm(v => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300">
+                    {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+                {pwError && (
+                  <p className="flex items-center gap-1 mt-1 text-xs text-red-500 dark:text-red-400">
+                    <AlertCircle size={12} /> {pwError}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex gap-3 pt-1">
+                <button type="button" onClick={() => { setStep('otp'); setPwError('') }}
+                  className="flex-1 py-2.5 border border-neutral-300 dark:border-neutral-600 rounded-lg text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors flex items-center justify-center gap-1">
+                  <ArrowLeft size={14} /> {isAmharic ? 'ተመለስ' : 'Back'}
+                </button>
+                <button type="submit" disabled={loading}
+                  className="flex-1 py-2.5 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
+                  {loading
+                    ? <><RefreshCw size={14} className="animate-spin" /> {isAmharic ? 'በመቀየር...' : 'Resetting...'}</>
+                    : (isAmharic ? 'ቀይር' : 'Reset Password')}
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* Step 4 — Done */}
+          {step === 'done' && (
+            <div className="text-center py-4 space-y-4">
+              <div className="w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mx-auto">
+                <CheckCircle size={32} className="text-green-600 dark:text-green-400" />
+              </div>
+              <div>
+                <h4 className="font-bold text-neutral-800 dark:text-neutral-100 text-lg">
+                  {isAmharic ? 'ተሳክቷል!' : 'Password Reset!'}
+                </h4>
+                <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">
+                  {isAmharic
+                    ? 'የይለፍ ቃልዎ ተቀይሯል። አሁን ይግቡ።'
+                    : 'Your password has been updated. You can now sign in.'}
+                </p>
+              </div>
+              <button onClick={onClose}
+                className="w-full py-2.5 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg text-sm font-semibold transition-colors">
+                {isAmharic ? 'ወደ መግቢያ ሂድ' : 'Back to Sign In'}
+              </button>
+            </div>
+          )}
+
+        </div>
       </motion.div>
     </div>
   )
-};
+}
 
 const Login = ({ isAdminLogin = false } = {}) => {
   const { t, i18n } = useTranslation();
