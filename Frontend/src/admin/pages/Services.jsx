@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import ServiceModal from '../components/ServiceModal';
 import { createService, deleteService, getServices, updateService } from '../../api/services.js';
+import { getAssetUrl } from '../../utils/api.js';
 
 const Services = () => {
   const { t } = useTranslation();
@@ -94,6 +95,7 @@ const Services = () => {
       try {
         setError('');
         if (serviceData.id) {
+          // images array contains a mix of existing URL strings and new File objects
           await updateService(serviceData.id, serviceData);
         } else {
           await createService(serviceData);
@@ -211,12 +213,10 @@ const Services = () => {
               <div className="h-48 bg-gray-200 dark:bg-gray-700 relative">
                 {service.images && service.images.length > 0 ? (
                   <img 
-                    src={service.images[0]} 
+                    src={getAssetUrl(service.images[0])} 
                     alt={service.name}
                     className="w-full h-full object-cover"
-                    onError={(e) => {
-                      e.target.src = '/assets/images/placeholder.jpg';
-                    }}
+                    onError={(e) => { e.target.src = '/public/bread.png' }}
                   />
                 ) : (
                   <div className="flex items-center justify-center h-full text-gray-400">

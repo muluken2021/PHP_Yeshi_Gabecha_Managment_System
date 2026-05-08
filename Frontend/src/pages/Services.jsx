@@ -17,6 +17,7 @@ import {
   Lightbulb
 } from 'lucide-react'
 import { getServices } from '../api/services.js'
+import { getAssetUrl } from '../utils/api.js'
 
 const ServicesShowcase = () => {
   const { t, i18n } = useTranslation()
@@ -184,12 +185,12 @@ const ServicesShowcase = () => {
                 {/* Service Image */}
                 <div className="mb-6 rounded-xl overflow-hidden">
                   <img 
-                    src={service.images?.[0] || '/public/bread.png'} 
+                    src={getAssetUrl(service.images?.[0]) || '/public/bread.png'} 
                     alt={service.name}
                     className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-500"
                     onError={(e) => {
-                      e.target.onerror = null; // Prevent infinite loop
-                      e.target.src = "/public/bread.png";
+                      e.target.onerror = null
+                      e.target.src = '/public/bread.png'
                     }}
                   />
                 </div>

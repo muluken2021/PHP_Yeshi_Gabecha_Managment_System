@@ -85,28 +85,66 @@ class ServiceController {
         $service = $model->findById($id);
         if (!$service) sendResponse(404, false, 'Service not found');
 
-        $d    = !empty($_FILES['images']) ? $_POST : self::json();
-        $data = array_filter([
-            'name'        => $d['name']        ?? null,
-            'description' => $d['description'] ?? null,
-            'price'       => isset($d['price']) ? (int)$d['price'] : null,
-            'category'    => $d['category']    ?? null,
-            'status'      => $d['status']      ?? null,
-            'featured'    => isset($d['featured']) ? ($d['featured'] !== 'false' && $d['featured'] !== '0') : null,
-        ], fn($v) => $v !== null);
+        // PHP doesn't populate $_POST for PUT multipart — parse raw input for JSON,
+        // but for multipart PUT we rely on $_FILES being populated by the web server.
+        // We use a method-override trick: send as POST with _method=PUT, OR
+        // detect content type and parse accordingly.
+        $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
+        $isMultipart = str_contains($contentType, 'multipart/form-data');
+        $isJson      = str_contains($contentType, 'application/json');
 
-        // Append new images to existing
+        if ($isMultipart) {
+            // For multipart PUT, Apache/PHP may not populate $_POST.
+            // The frontend sends as POST with FormData — handled via route override.
+            $d = $_POST;
+        } elseif ($isJson) {
+            $d = self::json();
+        } else {
+            // Try raw body as form-encoded
+            parse_str(file_get_contents('php://input'), $d);
+            if (empty($d)) $d = self::json();
+        }
+
+        $data = [];
+        if (isset($d['name']))        $data['name']        = $d['name'];
+        if (isset($d['description'])) $data['description'] = $d['description'];
+        if (isset($d['price']))       $data['price']       = (int)$d['price'];
+        if (isset($d['category']))    $data['category']    = $d['category'];
+        if (isset($d['status']))      $data['status']      = $d['status'];
+        if (isset($d['featured']))    $data['featured']    = ($d['featured'] !== 'false' && $d['featured'] !== '0' && $d['featured'] !== false);
+        // JSON path: keepImages replaces the images array
+        if (isset($d['keepImages'])) {
+            $keep = $d['keepImages'];
+            if (is_string($keep)) $keep = [$keep];
+            $data['images'] = array_values(array_filter((array)$keep));
+        }
+
+        // Handle image updates:
+        // - keepImages[] = existing paths to keep (others are removed)
+        // - images files  = new uploads to append
+        $existingImages = $service['images'] ?? [];
+
+        // If keepImages is sent, use it as the new base (user may have removed some)
+        if (isset($d['keepImages']) || isset($_POST['keepImages'])) {
+            $keep = $d['keepImages'] ?? $_POST['keepImages'] ?? [];
+            if (is_string($keep)) $keep = [$keep]; // single value
+            $existingImages = array_values(array_filter((array)$keep));
+        }
+
         if (!empty($_FILES['images'])) {
-            $existing = $service['images'] ?? [];
-            $files    = self::normalizeFiles($_FILES['images']);
+            $files = self::normalizeFiles($_FILES['images']);
             foreach ($files as $file) {
+                if ($file['error'] !== UPLOAD_ERR_OK) continue;
                 try {
-                    $existing[] = self::saveFile($file, 'services');
+                    $existingImages[] = self::saveFile($file, 'services');
                 } catch (Exception $e) {
                     sendResponse(400, false, $e->getMessage());
                 }
             }
-            $data['images'] = $existing;
+        }
+
+        if (isset($d['keepImages']) || isset($_POST['keepImages']) || !empty($_FILES['images'])) {
+            $data['images'] = $existingImages;
         }
 
         $updated = $model->update($id, $data);

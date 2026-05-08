@@ -1,15 +1,15 @@
 <?php
 // routes/serviceRoutes.php
-// GET    /services
-// GET    /services/{id}
-// POST   /services
-// PUT    /services/{id}
-// DELETE /services/{id}
-// DELETE /services/{id}/images/{index}
 
 require_once __DIR__ . '/../controllers/ServiceController.php';
 
 $method = $_SERVER['REQUEST_METHOD'];
+
+// Support method override for multipart PUT (PHP doesn't parse multipart PUT bodies)
+if ($method === 'POST' && isset($_POST['_method'])) {
+    $method = strtoupper($_POST['_method']);
+}
+
 $seg1   = $segments[1] ?? '';   // {id}
 $seg2   = $segments[2] ?? '';   // images
 $seg3   = $segments[3] ?? '';   // {index}
