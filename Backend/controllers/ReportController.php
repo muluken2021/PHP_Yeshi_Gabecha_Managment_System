@@ -16,13 +16,16 @@ class ReportController {
         $bookings        = (int) $conn->query("SELECT COUNT(*) FROM bookings")->fetchColumn();
         $pendingBookings = (int) $conn->query("SELECT COUNT(*) FROM bookings WHERE status='pending'")->fetchColumn();
         $gallery         = (int) $conn->query("SELECT COUNT(*) FROM gallery")->fetchColumn();
+        $services        = (int) $conn->query("SELECT COUNT(*) FROM services WHERE status='active'")->fetchColumn();
+        $events          = (int) $conn->query("SELECT COUNT(*) FROM events WHERE status='active'")->fetchColumn();
+        $pendingPayments = (int) $conn->query("SELECT COUNT(*) FROM payments WHERE status='pending'")->fetchColumn();
 
         $revenueRow = $conn->query(
             "SELECT COALESCE(SUM(amount),0) as total FROM payments WHERE status='completed'"
         )->fetch();
         $revenue = (float) $revenueRow['total'];
 
-        // Recent activity (last 10 bookings + payments)
+        // Recent activity (last 5 bookings + 5 payments merged)
         $activity = $conn->query(
             "SELECT 'booking' as type, CONCAT('New booking from ', customerName) as message, createdAt
              FROM bookings ORDER BY createdAt DESC LIMIT 5"
@@ -33,10 +36,10 @@ class ReportController {
              FROM payments ORDER BY createdAt DESC LIMIT 5"
         )->fetchAll();
 
-        $recentActivity = array_slice(
-            array_merge($activity, $payActivity),
-            0, 10
-        );
+        // Sort merged activity by createdAt desc
+        $recentActivity = array_merge($activity, $payActivity);
+        usort($recentActivity, fn($a, $b) => strcmp($b['createdAt'], $a['createdAt']));
+        $recentActivity = array_slice($recentActivity, 0, 10);
 
         sendResponse(200, true, 'Dashboard metrics', [
             'totals' => [
@@ -46,6 +49,9 @@ class ReportController {
                 'pendingBookings' => $pendingBookings,
                 'revenue'         => $revenue,
                 'gallery'         => $gallery,
+                'services'        => $services,
+                'events'          => $events,
+                'pendingPayments' => $pendingPayments,
             ],
             'recentActivity' => $recentActivity,
         ]);
@@ -125,15 +131,37 @@ class ReportController {
         global $conn;
         authorizeAdmin();
 
+        // Per-event breakdown
         $rows = $conn->query(
-            "SELECT e.id as eventId, e.title, e.totalTickets, e.soldTickets,
-                    COALESCE(SUM(p.amount),0) as revenue
+            "SELECT e.id as eventId, e.title, e.eventDate, e.ticketPrice,
+                    e.totalTickets, e.soldTickets,
+                    COALESCE(SUM(p.amount),0) as revenue,
+                    COUNT(p.id) as paymentCount
              FROM events e
              LEFT JOIN payments p ON p.eventId = e.id AND p.status = 'completed'
              GROUP BY e.id ORDER BY e.eventDate DESC"
         )->fetchAll();
 
-        sendResponse(200, true, 'Event stats', $rows);
+        $totalTickets = 0;
+        $totalRevenue = 0;
+        foreach ($rows as $r) {
+            $totalTickets += (int)$r['soldTickets'];
+            $totalRevenue += (float)$r['revenue'];
+        }
+
+        // Tickets sold per event (for bar chart)
+        $ticketCounts = array_map(fn($r) => [
+            'name'    => $r['title'],
+            'tickets' => (int)$r['soldTickets'],
+            'revenue' => (float)$r['revenue'],
+        ], $rows);
+
+        sendResponse(200, true, 'Event stats', [
+            'totalTickets'    => $totalTickets,
+            'totalRevenue'    => $totalRevenue,
+            'ticketCounts'    => $ticketCounts,
+            'eventBreakdown'  => $rows,
+        ]);
     }
 
     // ── Helper ────────────────────────────────────────────────

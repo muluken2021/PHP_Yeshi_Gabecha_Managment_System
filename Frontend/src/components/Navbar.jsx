@@ -39,8 +39,8 @@ const Navbar = () => {
                 src={logo}
                 alt="event"
               /> */}
-              <span className="ml-3 text-3xl font-serif font-bold font-s-1000 text-green-700 dark:text-emerald-400 hidden md:block">
-                Yeshih Gabcha
+              <span className="ml-3 text-2xl font-serif font-bold font-s-1000 text-green-700 dark:text-emerald-400 hidden md:block">
+                YeshiGabcha
               </span>
             </Link>
           </div>

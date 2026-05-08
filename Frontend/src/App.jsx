@@ -38,6 +38,7 @@ import AdminPricingPayments from './admin/pages/PricingPayments'
 import AdminEvents from './admin/pages/Events'
 import AdminProfile from './admin/pages/Profile'
 import AdminSettings from './admin/pages/Settings'
+import Payments from './admin/pages/Payments'
 
 // Protected Route Components
 const ProtectedUserRoute = ({ children }) => {
@@ -76,6 +77,8 @@ function AppContent() {
             <Route path="/events/:id/buy" element={<EventBuyTicket />} />
             <Route path="/booking" element={<Booking />} />
             <Route path="/contact" element={<Contact />} />
+
+
             <Route 
               path="/my-event-tickets" 
               element={
