@@ -58,7 +58,7 @@ const Navbar = () => {
                   {/* Hover underline effect */}
                   <span className="absolute bottom-2 left-1/2 transform -translate-x-1/2 w-0 h-0.5 bg-emerald-600 dark:bg-emerald-400 transition-all duration-200 group-hover:w-4/5"></span>
                 </Link>
-              ))}
+              ))} 
             </div>
           </div>
 
